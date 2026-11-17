@@ -1,10 +1,14 @@
-import express from "express";
+import express, { Router } from "express";
 import { errorHandler } from "./middleware/error.middleware.js";
+import router from "./router/auth.route.js";
+import cors from "cors";
 
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
+app.use("/api/v1", router);
 app.use(errorHandler);
 
 export default app;

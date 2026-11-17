@@ -1,6 +1,16 @@
 import express, { Router } from "express";
-import { sendOtpEmail } from "../services/email.service.js";
+
+import { sendOtp } from "../controller/auth.controller.js";
 
 const router = express.Router();
 
-router.post();
+router.get("/check", (req, res) => {
+  res.json({
+    success: true,
+    mesaage: "working",
+  });
+});
+
+router.post("/send-otp", sendOtp);
+
+export default router;

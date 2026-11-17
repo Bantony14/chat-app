@@ -16,10 +16,13 @@ export const sendOtp = async (
 
     const otp = await generateAndSaveOtp(email);
 
+    console.log("email", email);
+    console.log("otp", otp);
+
     if (!otp) {
       next(new AppError("otp generation failed", 400));
     }
-    sendOtpEmail(email);
+    sendOtpEmail({ email, otp });
 
     res.status(201).json({
       success: true,
