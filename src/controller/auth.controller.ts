@@ -55,7 +55,6 @@ export const verifyOtpController = async (
     await redisClient.set(
       `verify:${email.toLowerCase().trim()}:status`,
       "true",
-      { EX: 300 },
     );
 
     res.status(200).json({
@@ -74,6 +73,8 @@ export const userCreate = async (
 ) => {
   try {
     const { fullname, username, email, password } = req.body;
+
+    console.log("req.body : ", req.body);
 
     const requiredFields = [fullname, username, email, password];
 
@@ -111,6 +112,30 @@ export const userCreate = async (
 
     // HASH PASSWORD
     const securePassword = await hashPassword(password);
+
+    // console.log(securePassword, ":securepasword");
+
+    //  CREATING THE NEW USER
+    const userResult = await pool.query(
+      `INSERT INTO users (fullname,username,email,password)
+    VALUES ($1,$2,$3,$4)
+    RETURNING id, fullname, username, email
+    `,
+      [fullname, username, email, securePassword],
+    );
+
+    // console.log("userREsult :", userResult);
+
+    if (userResult.rows.length < 1) {
+      next(new AppError("user create failed", 400));
+    }
+
+    await redisClient.del(`verify:${email}:status`);
+
+    res.status(200).json({
+      success: true,
+      message: "user created successfully",
+    });
   } catch (error: unknown) {
     return next(error);
   }
