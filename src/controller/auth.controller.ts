@@ -1,10 +1,16 @@
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../utlis/AppError.js";
-import { hashPassword } from "../utlis/hash&comparePassword.js";
+import {
+  comparePassword,
+  hashPassword,
+} from "../utlis/hash&comparePassword.js";
 import pool from "../config/db.connect.js";
 import { sendOtpEmail } from "../services/email.service.js";
 import { generateAndSaveOtp, verifyOtp } from "../services/otp.services.js";
 import redisClient from "../config/redis.js";
+import { generateToken } from "../utlis/jwtTokenGen.js";
+
+// ALL API START FROM HERE
 
 export const sendOtp = async (
   req: Request,
@@ -12,7 +18,17 @@ export const sendOtp = async (
   next: NextFunction,
 ) => {
   try {
-    const { email } = req.body;
+    const { email, forgotPassword } = req.body;
+    console.log("forgotPassword:", forgotPassword);
+
+    const findUser = await pool.query(
+      "SELECT email FROM users WHERE email = $1",
+      [email],
+    );
+
+    if (!forgotPassword && findUser.rows[0]) {
+      next(new AppError("This email is exist", 400));
+    }
 
     const otp = await generateAndSaveOtp(email);
 
@@ -22,6 +38,7 @@ export const sendOtp = async (
     if (!otp) {
       next(new AppError("otp generation failed", 400));
     }
+
     sendOtpEmail({ email, otp });
 
     res.status(201).json({
@@ -74,8 +91,6 @@ export const userCreate = async (
   try {
     const { fullname, username, email, password } = req.body;
 
-    console.log("req.body : ", req.body);
-
     const requiredFields = [fullname, username, email, password];
 
     // CHECKING REQUIRED FIELDS
@@ -85,7 +100,9 @@ export const userCreate = async (
       }
     }
 
-    const key = await redisClient.get(`verify:${email}:status`);
+    const key = await redisClient.get(
+      `verify:${email.toLowerCase().trim()}:status`,
+    );
 
     if (!key) {
       next(new AppError("EMAIL VERFICATION FAILED", 409));
@@ -132,11 +149,167 @@ export const userCreate = async (
 
     await redisClient.del(`verify:${email}:status`);
 
+    const token = generateToken(
+      userResult.rows[0].id,
+      userResult.rows[0].email,
+    );
+
+    res.cookie("accessToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      maxAge: 15 * 60 * 1000,
+      path: "/",
+    });
+
     res.status(200).json({
       success: true,
       message: "user created successfully",
     });
   } catch (error: unknown) {
     return next(error);
+  }
+};
+
+export const loginUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Validate input
+    if (!email || !password) {
+      throw new AppError("Email and password are required", 400);
+    }
+
+    // 2. Find user
+    const userResult = await pool.query(
+      `SELECT id, fullname, username, email, password
+       FROM users
+       WHERE email = $1`,
+      [email],
+    );
+
+    const user = userResult.rows[0];
+
+    // 3. Check user exists
+    if (!user) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
+    // 4. Compare password
+    const isPasswordValid = await comparePassword(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
+    const token = generateToken(user.id, user.email);
+
+    res.cookie("accessToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      maxAge: 15 * 60 * 1000,
+      path: "/",
+    });
+
+    // 5. Success response
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: {
+        id: user.id,
+        fullname: user.fullname,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user?.userId;
+    console.log("strat");
+
+    console.log("userId :", userId);
+
+    if (!userId) {
+      next(new AppError("User id not found from the token of jwt"));
+    }
+
+    const result = await pool.query(
+      `SELECT id, fullname, username, email
+       FROM users
+       WHERE id = $1`,
+      [userId],
+    );
+
+    if (result.rows.length === 0) {
+      throw new AppError("User not found", 404);
+    }
+
+    return res.status(200).json({
+      success: true,
+      user: result.rows[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotpassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      next(new AppError("Please Enter Email And Password", 400));
+    }
+
+    const key = await redisClient.get(
+      `verify:${email.toLowerCase().trim()}:status`,
+    );
+
+    if (!key) {
+      next(new AppError("Email Verification Failed "));
+    }
+
+    // Finding a user
+    const findUser = await pool.query(
+      `SELECT email FROM users 
+    WHERE email = $1`,
+      [email],
+    );
+
+    if (findUser?.rows[0].length < 0) {
+      next(new AppError("Email Not Found", 401));
+    }
+
+    // Updating Password
+    const strongPassword = await hashPassword(password);
+
+    pool.query(`UPDATE users SET password = $1 WHERE email = $2`, [
+      strongPassword,
+      email,
+    ]);
+
+    res.status(200).json({
+      success: "True",
+      message: "Password Updated Successfully",
+    });
+  } catch (error) {
+    next(error);
   }
 };
