@@ -10,20 +10,20 @@ import {
 } from "../controller/auth.controller.js";
 import { authenticateUser } from "../middleware/auth.middleware.js";
 
-const router = express.Router();
+const authRouter = express.Router();
 
-router.get("/check", (req, res) => {
+authRouter.get("/check", (req, res) => {
   res.json({
     success: true,
     mesaage: "working",
   });
 });
 
-router.post("/send-otp", sendOtp);
-router.post("/verify-otp", verifyOtpController);
-router.post("/user-create", userCreate);
-router.post("/login", loginUser);
-router.get("/get-user", authenticateUser, getUser);
-router.post("/forgot-password", forgotpassword);
+authRouter.post("/send-otp", sendOtp);
+authRouter.post("/verify-otp", verifyOtpController);
+authRouter.post("/user-create", userCreate);
+authRouter.post("/login", loginUser);
+authRouter.get("/get-user", authenticateUser, getUser);
+authRouter.post("/forgot-password", forgotpassword);
 
-export default router;
+export default authRouter;
