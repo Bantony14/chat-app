@@ -10,8 +10,6 @@ export const sendMessage = async (
   try {
     const { sender_id, receiver_id, message } = req.body;
 
-    console.log("start");
-
     // Finding conversation data
     const findConversationId = await pool.query(
       `SELECT *
@@ -55,6 +53,51 @@ export const sendMessage = async (
     res.status(200).json({
       success: true,
       message: "Chat sent successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getConversationList = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { sender_id } = req.body;
+    if (!sender_id) {
+      next(new AppError("sender_id is not found", 409));
+    }
+
+    const conversationList = await pool.query(
+      `SELECT *
+FROM (
+    SELECT DISTINCT ON (user_id)
+        CASE
+            WHEN sender_id = $1 THEN receiver_id
+            ELSE sender_id
+        END AS user_id,
+        message,
+        created_at
+    FROM conversation_history
+    WHERE sender_id = $1 OR receiver_id = $1
+    ORDER BY user_id, created_at DESC
+) AS user_id
+ORDER BY created_at DESC;
+      `,
+      [sender_id],
+    );
+
+    console.log(conversationList.rows, ":ConversationList");
+
+    if (conversationList.rows.length < 1) {
+      next(new AppError("no message from any users", 409));
+    }
+    res.status(201).json({
+      success: "true",
+      message: "All list successfully done",
+      conversationList: conversationList.rows,
     });
   } catch (error) {
     next(error);
