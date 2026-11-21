@@ -27,7 +27,7 @@ export const sendOtp = async (
     );
 
     if (!forgotPassword && findUser.rows[0]) {
-      next(new AppError("This email is exist", 400));
+      return next(new AppError("This email is exist", 400));
     }
 
     const otp = await generateAndSaveOtp(email);
@@ -36,7 +36,7 @@ export const sendOtp = async (
     console.log("otp", otp);
 
     if (!otp) {
-      next(new AppError("otp generation failed", 400));
+      return next(new AppError("otp generation failed", 400));
     }
 
     sendOtpEmail({ email, otp });
@@ -60,7 +60,7 @@ export const verifyOtpController = async (
     const status = true;
 
     if (!email || !otp) {
-      next(new AppError("Email and OTP are required", 400));
+      return next(new AppError("Email and OTP are required", 400));
     }
 
     const verifyStatus = await verifyOtp(email, otp);
@@ -105,7 +105,7 @@ export const userCreate = async (
     );
 
     if (!key) {
-      next(new AppError("EMAIL VERFICATION FAILED", 409));
+      return next(new AppError("EMAIL VERFICATION FAILED", 409));
     }
 
     // CHECKING EXISTING USER
@@ -144,7 +144,7 @@ export const userCreate = async (
     // console.log("userREsult :", userResult);
 
     if (userResult.rows.length < 1) {
-      next(new AppError("user create failed", 400));
+      return next(new AppError("user create failed", 400));
     }
 
     await redisClient.del(`verify:${email}:status`);
@@ -181,7 +181,7 @@ export const loginUser = async (
 
     // 1. Validate input
     if (!email || !password) {
-      throw new AppError("Email and password are required", 400);
+      return new AppError("Email and password are required", 400);
     }
 
     // 2. Find user
@@ -196,14 +196,14 @@ export const loginUser = async (
 
     // 3. Check user exists
     if (!user) {
-      throw new AppError("Invalid email or password", 401);
+      return new AppError("Invalid email or password", 401);
     }
 
     // 4. Compare password
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      throw new AppError("Invalid email or password", 401);
+      return new AppError("Invalid email or password", 401);
     }
 
     const token = generateToken(user.id, user.email);
@@ -217,7 +217,7 @@ export const loginUser = async (
     });
 
     // 5. Success response
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Login successful",
       user: {
@@ -244,7 +244,7 @@ export const getUser = async (
     console.log("userId :", userId);
 
     if (!userId) {
-      next(new AppError("User id not found from the token of jwt"));
+      return next(new AppError("User id not found from the token of jwt"));
     }
 
     const result = await pool.query(
@@ -255,10 +255,10 @@ export const getUser = async (
     );
 
     if (result.rows.length === 0) {
-      throw new AppError("User not found", 404);
+      return new AppError("User not found", 404);
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       user: result.rows[0],
     });
@@ -275,7 +275,7 @@ export const forgotpassword = async (
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      next(new AppError("Please Enter Email And Password", 400));
+      return next(new AppError("Please Enter Email And Password", 400));
     }
 
     const key = await redisClient.get(
@@ -283,7 +283,7 @@ export const forgotpassword = async (
     );
 
     if (!key) {
-      next(new AppError("Email Verification Failed "));
+      return next(new AppError("Email Verification Failed "));
     }
 
     // Finding a user
@@ -294,7 +294,7 @@ export const forgotpassword = async (
     );
 
     if (findUser?.rows[0].length < 0) {
-      next(new AppError("Email Not Found", 401));
+      return next(new AppError("Email Not Found", 401));
     }
 
     // Updating Password

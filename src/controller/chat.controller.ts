@@ -67,7 +67,7 @@ export const getConversationList = async (
   try {
     const { sender_id } = req.body;
     if (!sender_id) {
-      next(new AppError("sender_id is not found", 409));
+      return next(new AppError("sender_id is not found", 409));
     }
 
     const conversationList = await pool.query(
@@ -89,15 +89,65 @@ ORDER BY created_at DESC;
       [sender_id],
     );
 
-    console.log(conversationList.rows, ":ConversationList");
-
     if (conversationList.rows.length < 1) {
-      next(new AppError("no message from any users", 409));
+      return next(new AppError("no message from any users", 409));
     }
     res.status(201).json({
       success: "true",
       message: "All list successfully done",
       conversationList: conversationList.rows,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMessage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { conversation_id, sender_id } = req.body;
+    const client = await pool.connect();
+    const currentTime = new Date().toISOString();
+
+    if (!conversation_id) {
+      return next(new AppError("conversation id not found", 400));
+    }
+    console.log("conversation_id:", conversation_id);
+
+    let allMsg: any;
+    try {
+      await client.query(`BEGIN`);
+      allMsg = await client.query(
+        `SELECT sender_id,message,created_at,seen FROM conversation_history WHERE chat_id = $1 ORDER BY created_at DESC`,
+        [conversation_id],
+      );
+
+      await client.query(
+        `UPDATE conversation_history 
+        SET seen = $1 ,seen_at = $4
+        WHERE receiver_id = $2 AND chat_id = $3 AND seen = false AND seen_at IS NULL`,
+        [true, sender_id, conversation_id, currentTime],
+      );
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+    } finally {
+      client.release();
+    }
+    console.log(allMsg);
+
+    if (allMsg?.rows?.length < 1 || !allMsg) {
+      return next(new AppError("No Message Found", 401));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "All Message Found",
+      allMsg: allMsg?.rows,
     });
   } catch (error) {
     next(error);
