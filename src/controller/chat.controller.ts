@@ -92,6 +92,13 @@ ORDER BY created_at DESC;
     if (conversationList.rows.length < 1) {
       return next(new AppError("no message from any users", 409));
     }
+
+    const countMsgNotSeen = await pool.query(
+      `SELECT sender_id,COUNT(*) FROM conversation_history WHERE receiver_id = $1 AND seen = false GROUP BY sender_id`,
+      [sender_id],
+    );
+    console.log(countMsgNotSeen?.rows);
+
     res.status(201).json({
       success: "true",
       message: "All list successfully done",
@@ -121,7 +128,7 @@ export const getMessage = async (
     try {
       await client.query(`BEGIN`);
       allMsg = await client.query(
-        `SELECT sender_id,message,created_at,seen FROM conversation_history WHERE chat_id = $1 ORDER BY created_at DESC`,
+        `SELECT sender_id,message,created_at,seen,seen_at FROM conversation_history WHERE chat_id = $1 ORDER BY created_at DESC`,
         [conversation_id],
       );
 
@@ -138,7 +145,6 @@ export const getMessage = async (
     } finally {
       client.release();
     }
-    console.log(allMsg);
 
     if (allMsg?.rows?.length < 1 || !allMsg) {
       return next(new AppError("No Message Found", 401));
