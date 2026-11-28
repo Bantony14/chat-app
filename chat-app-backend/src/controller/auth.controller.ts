@@ -19,7 +19,8 @@ export const sendOtp = async (
 ) => {
   try {
     const { email, forgotPassword } = req.body;
-    console.log("forgotPassword:", forgotPassword);
+
+    console.log(req.body);
 
     const findUser = await pool.query(
       "SELECT email FROM users WHERE email = $1",
@@ -27,7 +28,7 @@ export const sendOtp = async (
     );
 
     if (!forgotPassword && findUser.rows[0]) {
-      return next(new AppError("This email is exist", 400));
+      return next(new AppError("This email is Already exist", 400));
     }
 
     const otp = await generateAndSaveOtp(email);
@@ -39,7 +40,11 @@ export const sendOtp = async (
       return next(new AppError("otp generation failed", 400));
     }
 
-    sendOtpEmail({ email, otp });
+    try {
+      sendOtpEmail({ email, otp });
+    } catch (error) {
+      next(error);
+    }
 
     res.status(201).json({
       success: true,
@@ -57,7 +62,6 @@ export const verifyOtpController = async (
 ) => {
   try {
     const { email, otp } = req.body;
-    const status = true;
 
     if (!email || !otp) {
       return next(new AppError("Email and OTP are required", 400));
@@ -66,7 +70,7 @@ export const verifyOtpController = async (
     const verifyStatus = await verifyOtp(email, otp);
 
     if (!verifyStatus) {
-      next(new AppError("otp verification falied", 409));
+      return next(new AppError("otp verification falied", 409));
     }
 
     await redisClient.set(
@@ -164,7 +168,8 @@ export const userCreate = async (
 
     res.status(200).json({
       success: true,
-      message: "user created successfully",
+      message: "User Created Successfully",
+      user: userResult.rows[0],
     });
   } catch (error: unknown) {
     return next(error);
@@ -239,9 +244,6 @@ export const getUser = async (
 ) => {
   try {
     const userId = req.user?.userId;
-    console.log("strat");
-
-    console.log("userId :", userId);
 
     if (!userId) {
       return next(new AppError("User id not found from the token of jwt"));

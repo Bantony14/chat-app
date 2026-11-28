@@ -1,0 +1,51 @@
+@import "tailwindcss";
+/* ================= CHAT SCROLLBAR ================= */
+
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c5f46a #fff9ef;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: #fff9ef;
+  border-left: 2px solid black;
+  border-right: 2px solid black;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: #c5f46a;
+  border: 2px solid black;
+  border-radius: 10px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b69aff;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: black !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.3s ease-out forwards;
+}
