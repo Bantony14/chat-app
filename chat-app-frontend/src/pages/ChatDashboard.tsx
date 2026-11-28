@@ -1,20 +1,22 @@
-import ChatWindow from "../assets/components/chat-dashboard/desktop/ChatWindow";
-import ChatList from "../assets/components/chat-dashboard/desktop/ChatList";
-import Sidebar from "../assets/components/chat-dashboard/desktop/Sidebar";
-import MobileChatList from "../assets/components/chat-dashboard/mobile/MobileChatList";
-import MobileBottomNav from "../assets/components/chat-dashboard/mobile/MobileBottomNav";
-import MobileChatWindow from "../assets/components/chat-dashboard/mobile/MobileChatWindow";
-import MobileHeader from "../assets/components/chat-dashboard/mobile/MobileHeader";
+import ChatWindow from "../components/chat-dashboard/desktop/ChatWindow";
+import ChatList from "../components/chat-dashboard/desktop/ChatList";
+import Sidebar from "../components/chat-dashboard/desktop/Sidebar";
+import MobileChatList from "../components/chat-dashboard/mobile/MobileChatList";
+import MobileBottomNav from "../components/chat-dashboard/mobile/MobileBottomNav";
+import MobileChatWindow from "../components/chat-dashboard/mobile/MobileChatWindow";
+import MobileHeader from "../components/chat-dashboard/mobile/MobileHeader";
 import { useState } from "react";
+import { useUser } from "../context/UserContext";
 
 function ChatDashboard() {
+  const { user } = useUser();
   const [chatList, setChatList] = useState("");
   return (
     <main className="h-dvh w-full bg-[#FFF9EF] overflow-hidden">
       {/* ================= DESKTOP + TABLET DASHBOARD ================= */}
       <div className="hidden md:flex h-full w-full">
         {/* Desktop Sidebar */}
-        <Sidebar />
+        <Sidebar userDetails={user} />
         <ChatList />
         <ChatWindow />
       </div>

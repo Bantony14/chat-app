@@ -9,7 +9,7 @@ import {
   KeyRound,
   CheckCircle2,
 } from "lucide-react";
-import StaticHeader from "../assets/components/header-navbar/StaticHeader";
+import StaticHeader from "../components/header-navbar/StaticHeader";
 
 function ForgotPassword() {
   // UI states only (no API integration)

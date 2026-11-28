@@ -15,3 +15,7 @@ export const sendOtp = (email: string) => {
 export const verifyOtp = (email: string, otp: string) => {
   return API.post("/verify-otp", { email, otp });
 };
+
+export const loginUser = (email: string, password: string) => {
+  return API.post("/login", { email, password });
+};

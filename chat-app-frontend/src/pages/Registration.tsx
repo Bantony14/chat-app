@@ -13,13 +13,12 @@ import {
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { useToast } from "../context/ToastContext";
-import StaticHeader from "../assets/components/header-navbar/StaticHeader";
+import StaticHeader from "../components/header-navbar/StaticHeader";
 
 import { sendOtp, sighUp, verifyOtp } from "../Api/authAxios";
 import axios from "axios";
-import FullScreenLoader from "../assets/components/FullScreenLoader";
-import { Link, useAsyncError, useNavigate } from "react-router-dom";
-import flattenColorPalette from "tailwindcss/lib/util/flattenColorPalette";
+import FullScreenLoader from "../components/FullScreenLoader";
+import { Link, useNavigate } from "react-router-dom";
 
 function Registration() {
   interface formData {

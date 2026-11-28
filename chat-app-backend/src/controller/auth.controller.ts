@@ -184,9 +184,11 @@ export const loginUser = async (
   try {
     const { email, password } = req.body;
 
+    console.log("start");
+
     // 1. Validate input
     if (!email || !password) {
-      return new AppError("Email and password are required", 400);
+      return next(new AppError("Email and password are required", 400));
     }
 
     // 2. Find user
@@ -201,16 +203,19 @@ export const loginUser = async (
 
     // 3. Check user exists
     if (!user) {
-      return new AppError("Invalid email or password", 401);
+      return next(new AppError("Invalid email or password", 401));
     }
+
+    console.log("check pass");
 
     // 4. Compare password
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      return new AppError("Invalid email or password", 401);
+      return next(new AppError("Invalid email or password", 401));
     }
 
+    // 5. Generate token
     const token = generateToken(user.id, user.email);
 
     res.cookie("accessToken", token, {
@@ -221,7 +226,7 @@ export const loginUser = async (
       path: "/",
     });
 
-    // 5. Success response
+    // 6. Success response
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -233,7 +238,7 @@ export const loginUser = async (
       },
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
@@ -246,7 +251,7 @@ export const getUser = async (
     const userId = req.user?.userId;
 
     if (!userId) {
-      return next(new AppError("User id not found from the token of jwt"));
+      next(new AppError("User id not found from the token of jwt"));
     }
 
     const result = await pool.query(
@@ -257,7 +262,7 @@ export const getUser = async (
     );
 
     if (result.rows.length === 0) {
-      return new AppError("User not found", 404);
+      next(new AppError("User not found", 404));
     }
 
     res.status(200).json({

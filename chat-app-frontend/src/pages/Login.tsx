@@ -8,18 +8,64 @@ import {
   Sparkles,
   Crown,
   MessageSquare,
+  LoaderCircle,
 } from "lucide-react";
+import axios from "axios";
 import { useUser } from "../context/UserContext";
-import StaticHeader from "../assets/components/header-navbar/StaticHeader";
+import StaticHeader from "../components/header-navbar/StaticHeader";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "../context/ToastContext";
+import { loginUser } from "../Api/authAxios";
 
 function Login() {
-  const { user, setUser } = useUser();
+  const userLoginInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+  const { setUser } = useUser();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [email, setEmail] = useState(userLoginInfo?.email || "");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
-  const handleLogin = (e) => {
+  const navigate = useNavigate();
+
+  console.log(email);
+  console.log(password);
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    console.log("start");
+
+    if (!email || !password) {
+      showToast("Please Enter Proper Email & Password", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (rememberMe) {
+      localStorage.setItem("userInfo", JSON.stringify({ email }));
+    }
+
+    try {
+      console.log("start try");
+      const response = await loginUser(email, password);
+      console.log(response);
+      setUser(response?.data?.user);
+      showToast(response.data.message, "success");
+      navigate("/chat-dashboard", { replace: true });
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        showToast(
+          err.response?.data?.message || "Login failed. Please try again.",
+          "error",
+        );
+      } else {
+        showToast("Something went wrong. Please try again.", "error");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -108,9 +154,13 @@ function Login() {
                 <input
                   type="email"
                   placeholder="Email Address"
-                  required
+                  name={email}
+                  value={email}
                   autoComplete="email"
                   className="w-full h-14 sm:h-16 border-2 border-black rounded-xl bg-transparent pl-12 pr-4 text-base sm:text-lg font-medium outline-none shadow-[4px_4px_0px_#000] focus:shadow-[2px_2px_0px_#000] focus:translate-x-[2px] focus:translate-y-[2px] transition-all"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                  }}
                 />
               </div>
 
@@ -124,9 +174,13 @@ function Login() {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
-                  required
+                  name={password}
+                  value={password}
                   autoComplete="current-password"
                   className="w-full h-14 sm:h-16 border-2 border-black rounded-xl bg-transparent pl-12 pr-12 text-base sm:text-lg font-medium outline-none shadow-[4px_4px_0px_#000] focus:shadow-[2px_2px_0px_#000] focus:translate-x-[2px] focus:translate-y-[2px] transition-all"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                  }}
                 />
 
                 <button
@@ -162,10 +216,24 @@ function Login() {
               {/* Login Button */}
               <button
                 type="submit"
-                className="w-full h-14 sm:h-16 bg-[#C5F46A] border-[3px] border-black rounded-xl text-xl sm:text-2xl font-black shadow-[5px_5px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[5px] active:translate-y-[5px] transition-all flex items-center justify-center gap-4"
+                disabled={loading}
+                className="w-full h-14 sm:h-16 bg-[#C5F46A] border-[3px] border-black rounded-xl text-xl sm:text-2xl font-black shadow-[5px_5px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[5px] active:translate-y-[5px] transition-all flex items-center justify-center gap-4 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[5px_5px_0px_#000]"
               >
-                Login
-                <ArrowRight size={25} strokeWidth={3} />
+                {loading ? (
+                  <>
+                    Logging in...
+                    <LoaderCircle
+                      size={25}
+                      strokeWidth={3}
+                      className="animate-spin"
+                    />
+                  </>
+                ) : (
+                  <>
+                    Login
+                    <ArrowRight size={25} strokeWidth={3} />
+                  </>
+                )}
               </button>
             </form>
 

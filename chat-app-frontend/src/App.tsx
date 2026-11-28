@@ -6,7 +6,7 @@ import Registration from "./pages/Registration";
 import { Routes, Route } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import { useUser } from "./context/UserContext";
-import FullScreenLoader from "./assets/components/FullScreenLoader";
+import FullScreenLoader from "./components/FullScreenLoader";
 
 function App() {
   const { user, loading } = useUser();
@@ -17,6 +17,7 @@ function App() {
 
   return (
     <>
+      {}
       <Routes>
         <Route
           path="/"
